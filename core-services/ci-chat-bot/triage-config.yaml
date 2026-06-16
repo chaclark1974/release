@@ -41,7 +41,7 @@ failure_detection:
 # Analysis configuration
 analysis:
   # Maximum time to spend analyzing a single failure (seconds)
-  timeout: 120
+  timeout: 300
 
   # AI provider configuration - Using Chai Bot via ship-help MCP
   ai_provider: "ship-help-mcp"
