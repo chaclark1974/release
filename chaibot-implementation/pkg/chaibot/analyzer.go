@@ -131,7 +131,7 @@ func (a *Analyzer) HandleMessage(ctx context.Context, event *slack.MessageEvent)
 	// Post "analyzing" reaction
 	if err := a.slackClient.AddReaction("eyes", slack.ItemRef{
 		Channel:   event.Channel,
-		Timestamp: event.TimeStamp,
+		Timestamp: event.Timestamp,
 	}); err != nil {
 		a.logger.WithError(err).Warn("Failed to add reaction")
 	}
@@ -145,7 +145,7 @@ func (a *Analyzer) HandleMessage(ctx context.Context, event *slack.MessageEvent)
 		// Post error reaction
 		a.slackClient.AddReaction("x", slack.ItemRef{
 			Channel:   event.Channel,
-			Timestamp: event.TimeStamp,
+			Timestamp: event.Timestamp,
 		})
 
 		return err
@@ -162,7 +162,7 @@ func (a *Analyzer) HandleMessage(ctx context.Context, event *slack.MessageEvent)
 	// Post success reaction
 	if err := a.slackClient.AddReaction("white_check_mark", slack.ItemRef{
 		Channel:   event.Channel,
-		Timestamp: event.TimeStamp,
+		Timestamp: event.Timestamp,
 	}); err != nil {
 		a.logger.WithError(err).Warn("Failed to add success reaction")
 	}
@@ -170,7 +170,7 @@ func (a *Analyzer) HandleMessage(ctx context.Context, event *slack.MessageEvent)
 	// Remove analyzing reaction
 	a.slackClient.RemoveReaction("eyes", slack.ItemRef{
 		Channel:   event.Channel,
-		Timestamp: event.TimeStamp,
+		Timestamp: event.Timestamp,
 	})
 
 	return nil
@@ -281,11 +281,11 @@ func (a *Analyzer) postAnalysis(ctx context.Context, event *slack.MessageEvent, 
 	message := a.formatAnalysisMessage(result)
 
 	// Determine where to post
-	timestamp := event.TimeStamp
+	timestamp := event.Timestamp
 	if mode == "thread" {
-		timestamp = event.ThreadTimeStamp
+		timestamp = event.ThreadTimestamp
 		if timestamp == "" {
-			timestamp = event.TimeStamp // Start a new thread
+			timestamp = event.Timestamp // Start a new thread
 		}
 	}
 
