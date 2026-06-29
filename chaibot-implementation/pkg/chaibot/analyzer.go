@@ -72,14 +72,23 @@ func NewAnalyzer(config *Config, slackClient *slack.Client, logger *logrus.Entry
 		return nil, fmt.Errorf("chaibot is not enabled")
 	}
 
-	mcpClient := mcp.NewClient(config.MCPEndpoint, config.MCPToken, logger)
+	var mcpClient *mcp.Client
 
-	// Initialize MCP session
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
+	// Initialize MCP session if endpoint is configured
+	if config.MCPEndpoint != "" {
+		mcpClient = mcp.NewClient(config.MCPEndpoint, config.MCPToken, logger)
 
-	if err := mcpClient.Initialize(ctx); err != nil {
-		return nil, fmt.Errorf("failed to initialize MCP client: %w", err)
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		if err := mcpClient.Initialize(ctx); err != nil {
+			logger.WithError(err).Warn("Failed to initialize MCP client, continuing without AI analysis")
+			mcpClient = nil
+		} else {
+			logger.Info("MCP client initialized successfully")
+		}
+	} else {
+		logger.Info("No MCP endpoint configured, running without AI analysis")
 	}
 
 	return &Analyzer{
@@ -180,6 +189,19 @@ func (a *Analyzer) HandleMessage(ctx context.Context, event *slack.MessageEvent)
 func (a *Analyzer) AnalyzeFailure(ctx context.Context, jobURL string) (*AnalysisResult, error) {
 	a.logger.WithField("job_url", jobURL).Info("Analyzing test failure")
 
+	// If MCP is not available, return a basic result
+	if a.mcpClient == nil {
+		a.logger.Warn("MCP client not available, returning basic analysis")
+		return &AnalysisResult{
+			JobURL:      jobURL,
+			RootCause:   "Analysis unavailable - MCP service not connected",
+			Category:    "unknown",
+			Confidence:  0.0,
+			Evidence:    fmt.Sprintf("ChaiBot detected a failure but AI analysis is currently unavailable. Please review manually: %s", jobURL),
+			Recommendations: []string{"Review job logs manually", "Check Sippy for historical data"},
+		}, nil
+	}
+
 	// Create analysis prompt from template
 	prompt := a.buildAnalysisPrompt(jobURL)
 
@@ -189,7 +211,15 @@ func (a *Analyzer) AnalyzeFailure(ctx context.Context, jobURL string) (*Analysis
 
 	analysis, err := a.mcpClient.AskPersona(analysisCtx, prompt)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get analysis from ship-help: %w", err)
+		a.logger.WithError(err).Warn("MCP analysis failed, returning basic result")
+		return &AnalysisResult{
+			JobURL:      jobURL,
+			RootCause:   "Analysis failed",
+			Category:    "unknown",
+			Confidence:  0.0,
+			Evidence:    fmt.Sprintf("Failed to analyze with MCP: %v. Please review manually: %s", err, jobURL),
+			Recommendations: []string{"Review job logs manually", "Check Sippy for historical data"},
+		}, nil
 	}
 
 	// Parse the analysis response
@@ -393,5 +423,8 @@ func (a *Analyzer) checkRateLimit(jobURL string) bool {
 
 // Close closes the analyzer and cleans up resources
 func (a *Analyzer) Close(ctx context.Context) error {
-	return a.mcpClient.Close(ctx)
+	if a.mcpClient != nil {
+		return a.mcpClient.Close(ctx)
+	}
+	return nil
 }
