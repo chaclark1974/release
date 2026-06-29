@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -51,7 +50,6 @@ func main() {
 	slackClient := slack.New(
 		opts.slackBotToken,
 		slack.OptionAppLevelToken(opts.slackAppToken),
-		slack.OptionLog(logger),
 	)
 
 	// Create Chaibot analyzer
@@ -66,7 +64,6 @@ func main() {
 	// Setup Socket Mode client
 	socketClient := socketmode.New(
 		slackClient,
-		socketmode.OptionLog(logger),
 	)
 
 	// Handle events
