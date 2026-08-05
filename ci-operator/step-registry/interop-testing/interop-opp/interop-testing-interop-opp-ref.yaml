@@ -1,0 +1,9 @@
+ref: interop-testing-interop-opp
+  as: interop-testing-interop-opp
+  from: interop-tests 
+  commands: interop-testing-interop-opp-commands.sh
+  resources:
+    requests:
+      cpu: 100m
+      memory: 200Mi
+  documentation: Runs the interop/opp suite from interop-tests
