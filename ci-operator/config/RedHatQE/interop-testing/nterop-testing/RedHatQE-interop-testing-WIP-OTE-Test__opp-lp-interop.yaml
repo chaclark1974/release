@@ -1,0 +1,15 @@
+ base_images:
+    interop-tests:
+      namespace: ci
+      name: interop-tests
+      tag: test
+
+  tests:
+  - as: opp-interop-aws
+    steps:
+      cluster_profile: aws-interop-qe
+      env:
+        BASE_DOMAIN: interop.ccitredhat.com
+      workflow: firewatch-ipi-aws
+      test:
+      - ref: interop-testing-interop-opp
